@@ -1,14 +1,15 @@
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+
 plugins {
     kotlin("multiplatform") version "1.9.0"
     id("maven-publish")
 }
 
-group = "org.bar"
+group = "org.foo.internal"
 version = project.providers.gradleProperty("deploy.ver").orElse("1.0").get()
 
 repositories {
     mavenCentral()
-    maven("../repo")
 }
 
 kotlin {
@@ -17,7 +18,6 @@ kotlin {
 
     val commonMain by sourceSets.getting {
         dependencies {
-            implementation("org.foo:lib-foo:${project.findProperty("foo.ver") ?: "1.0"}")
         }
     }
     val macosMain by sourceSets.creating {
@@ -28,6 +28,14 @@ kotlin {
     }
     val macosArm64Main by sourceSets.getting {
         dependsOn(macosMain)
+    }
+
+    if (project.findProperty("cinterop") != "false") {
+        targets.withType(KotlinNativeTarget::class.java).configureEach {
+            compilations.getByName("main").cinterops.create("foo-internal") {
+                defFileProperty.set(project.file("foo-internal.def"))
+            }
+        }
     }
 }
 

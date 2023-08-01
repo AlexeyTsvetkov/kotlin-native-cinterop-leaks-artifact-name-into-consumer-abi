@@ -3,51 +3,32 @@ plugins {
     id("maven-publish")
 }
 
+val deployVer = project.findProperty("deploy.ver") ?: "1.0"
 group = "org.foo"
-version = project.providers.gradleProperty("deploy.version").orElse("1.0").get()
+version = deployVer
 
 repositories {
     mavenCentral()
+    maven("../repo")
 }
 
 kotlin {
-    listOf(
-        iosX64(),
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        if (project.findProperty("include.cinterop") != "false") {
-            iosTarget.compilations.getByName("main").cinterops.create("foo-cinterop") {
-                defFileProperty.set(project.file("foo.def"))
-            }
+    macosX64()
+    macosArm64()
+
+    val commonMain by sourceSets.getting {
+        dependencies {
+            implementation("org.foo.internal:lib-foo-internal:${deployVer}")
         }
     }
-
-    val commonMain by sourceSets.getting
-    val commonTest by sourceSets.getting
-    val iosMain by sourceSets.creating {
+    val macosMain by sourceSets.creating {
         dependsOn(commonMain)
     }
-    val iosTest by sourceSets.creating {
-        dependsOn(commonTest)
+    val macosX64Main by sourceSets.getting {
+        dependsOn(macosMain)
     }
-    val iosX64Main by sourceSets.getting {
-        dependsOn(iosMain)
-    }
-    val iosX64Test by sourceSets.getting {
-        dependsOn(iosTest)
-    }
-    val iosArm64Main by sourceSets.getting {
-        dependsOn(iosMain)
-    }
-    val iosArm64Test by sourceSets.getting {
-        dependsOn(iosTest)
-    }
-    val iosSimulatorArm64Main by sourceSets.getting {
-        dependsOn(iosMain)
-    }
-    val iosSimulatorArm64Test by sourceSets.getting {
-        dependsOn(iosTest)
+    val macosArm64Main by sourceSets.getting {
+        dependsOn(macosMain)
     }
 }
 
@@ -57,4 +38,8 @@ publishing {
             url = uri(layout.projectDirectory.dir("../repo"))
         }
     }
+}
+
+tasks.register("publishToRepoDir") {
+    dependsOn("publishAllPublicationsToMavenRepository")
 }

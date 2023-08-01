@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+
 plugins {
     kotlin("multiplatform") version "1.9.0"
 }
@@ -8,46 +10,30 @@ repositories {
 }
 
 kotlin {
-    listOf(
-        iosX64(),
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
-            baseName = "shared"
-            isStatic = true
-        }
-    }
+    macosX64()
+    macosArm64()
 
     val commonMain by sourceSets.getting {
         dependencies {
-            implementation("org.foo:lib-foo:1.1")
-            implementation("org.bar:lib-bar:1.0")
+            implementation("org.foo:lib-foo:${project.findProperty("foo.ver") ?: "1.0"}")
+            implementation("org.bar:lib-bar:${project.findProperty("bar.ver") ?: "1.0"}")
         }
     }
-    val commonTest by sourceSets.getting
-    val iosMain by sourceSets.creating {
+    val macosMain by sourceSets.creating {
         dependsOn(commonMain)
     }
-    val iosTest by sourceSets.creating {
-        dependsOn(commonTest)
+    val macosX64Main by sourceSets.getting {
+        dependsOn(macosMain)
     }
-    val iosX64Main by sourceSets.getting {
-        dependsOn(iosMain)
+    val macosArm64Main by sourceSets.getting {
+        dependsOn(macosMain)
     }
-    val iosX64Test by sourceSets.getting {
-        dependsOn(iosTest)
-    }
-    val iosArm64Main by sourceSets.getting {
-        dependsOn(iosMain)
-    }
-    val iosArm64Test by sourceSets.getting {
-        dependsOn(iosTest)
-    }
-    val iosSimulatorArm64Main by sourceSets.getting {
-        dependsOn(iosMain)
-    }
-    val iosSimulatorArm64Test by sourceSets.getting {
-        dependsOn(iosTest)
+
+    targets.withType(KotlinNativeTarget::class.java).configureEach {
+        binaries {
+            executable {
+                entryPoint = "main"
+            }
+        }
     }
 }
